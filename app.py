@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, request
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import relationship
 from flask_restx import Api, Resource
@@ -6,8 +6,9 @@ from marshmallow import Schema, fields
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test.db'
-api = Api(app)
 db = SQLAlchemy(app)
+api = Api(app)
+api.app.config['RESTX_JSON'] = {'ensure_ascii': False, 'indent': 4, }
 
 movies_ns = api.namespace('movies')
 directors_ns = api.namespace('directors')
@@ -40,8 +41,8 @@ class Movies(db.Model):
     genre_id = db.Column(db.Integer, db.ForeignKey('genre.id'), nullable=False)
     director_id = db.Column(db.Integer, db.ForeignKey('director.id'), nullable=False)
 
-    genre = relationship('Genres')
-    director = relationship('Directors')
+    genre = relationship('Genres', foreign_keys=genre_id)
+    director = relationship('Directors', foreign_keys=director_id)
 
 
 class MoviesSchema(Schema):
@@ -51,6 +52,8 @@ class MoviesSchema(Schema):
     trailer = fields.Str()
     year = fields.Int()
     rating = fields.Float()
+    genre_id = fields.Int()
+    director_id = fields.Int()
 
 
 class DirectorSchema(Schema):
@@ -72,40 +75,50 @@ genres_schema = GenresSchema()
 class MoviesView(Resource):
     @staticmethod
     def get():
-        with app.app_context():
-            return movies_schema.dump(Movies.query.all(), many=True)
+
+        director_id = request.args.get('director_id')
+        genre_id = request.args.get('genre_id')
+        movie_query = Movies.query
+
+        if director_id:
+            movie_query = movie_query.filter(Movies.director_id == director_id)
+        if genre_id:
+            movie_query = movie_query.filter(Movies.genre_id == genre_id)
+
+        return movies_schema.dump(movie_query, many=True), 200
 
 
 @movies_ns.route('/<int:mid>')
 class MovieView(Resource):
 
-    def get(self):
-        return
+    def get(self, mid):
+        print(Movies.query.get(1), '=', mid)
+        return movies_schema.dump(db.session.query(Movies).filter(Movies.id == mid).first()), 200
 
 
 @directors_ns.route('/')
 class DirectorsView(Resource):
     def get(self):
-        return
+        return directors_schema.dump(Directors.query.all(), many=True)
 
 
 @directors_ns.route('/<int:did>')
 class DirectorView(Resource):
 
-    def get(self):
-        return
+    def get(self, did):
+        return directors_schema.dump(db.session.query(Directors).filter(Directors.id == did).first()), 200
 
 
 @genres_ns.route('/')
 class GenresView(Resource):
     def get(self):
-        return
+        return genres_schema.dump(Genres.query.all(), many=True), 200
 
 
 @genres_ns.route('/<int:gid>')
 class GenreView(Resource):
-    def get(self):
-        return
+    def get(self, gid):
+        return genres_schema.dump(db.session.query(Genres).filter(Genres.id == gid).first()), 200
 
 
 if __name__ == '__main__':
