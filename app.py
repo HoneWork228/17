@@ -92,14 +92,17 @@ class MoviesView(Resource):
 class MovieView(Resource):
 
     def get(self, mid):
-        print(Movies.query.get(1), '=', mid)
         return movies_schema.dump(db.session.query(Movies).filter(Movies.id == mid).first()), 200
+
+    def delete(self, mid):
+        db.session.query(Movies).filter(Movies.id == mid).delete()
+        return '', 204
 
 
 @directors_ns.route('/')
 class DirectorsView(Resource):
     def get(self):
-        return directors_schema.dump(Directors.query.all(), many=True)
+        return directors_schema.dump(Directors.query.all(), many=True), 200
 
 
 @directors_ns.route('/<int:did>')
@@ -107,6 +110,10 @@ class DirectorView(Resource):
 
     def get(self, did):
         return directors_schema.dump(db.session.query(Directors).filter(Directors.id == did).first()), 200
+
+    def delete(self, did):
+        db.session.query(Directors).filter(Directors.id == did).delete()
+        return '', 204
 
 
 @genres_ns.route('/')
@@ -119,6 +126,10 @@ class GenresView(Resource):
 class GenreView(Resource):
     def get(self, gid):
         return genres_schema.dump(db.session.query(Genres).filter(Genres.id == gid).first()), 200
+
+    def delete(self, gid):
+        db.session.query(Genres).filter(Genres.id == gid).delete()
+        return '', 204
 
 
 if __name__ == '__main__':
