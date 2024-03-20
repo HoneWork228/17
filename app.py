@@ -3,7 +3,6 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import relationship
 from flask_restx import Api, Resource
 from marshmallow import Schema, fields
-import re
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test.db'
@@ -107,7 +106,6 @@ class MoviesView(Resource):
 
 @movies_ns.route('/<int:mid>')
 class MovieView(Resource):
-
     @staticmethod
     def get(mid: int):
         return movies_schema.dump(db.session.query(Movies).filter(Movies.id == mid).first()), 200
@@ -134,7 +132,7 @@ class MovieView(Resource):
 
             db.session.add(movie)
             db.session.commit()
-        return redirect(f'{request.base_url}', 200)
+        return redirect(request.base_url, 200)
 
 
 @directors_ns.route('/')
